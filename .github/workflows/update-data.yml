@@ -21,7 +21,7 @@ jobs:
           pip install requests
       - name: Run script
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
         run: python scripts/fetch_repos.py
       - name: Commit and push if changed
         run: |
