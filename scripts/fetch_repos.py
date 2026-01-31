@@ -12,9 +12,16 @@ BASE_URL = 'https://api.github.com/search/repositories'
 
 # Categories and their topics
 categories = {
-    "AI": ["ai", "machine-learning", "deep-learning"],
-    "Anime": ["anime"],
-    "FinTech": ["fintech", "blockchain", "cryptocurrency"],
+        'AI': ['machine-learning', 'artificial-intelligence', 'deep-learning', 'neural-networks', 'ai'],
+        'Anime': ['anime', 'manga', 'otaku', 'anime-games', 'anime-app'],
+        'FinTech': ['fintech', 'blockchain', 'cryptocurrency', 'banking', 'finance'],
+        'Web Dev': ['web', 'javascript', 'react', 'vue', 'angular', 'nodejs'],
+        'Mobile': ['mobile', 'android', 'ios', 'flutter', 'react-native'],
+        'DevOps': ['devops', 'kubernetes', 'docker', 'ci-cd', 'infrastructure'],
+        'Gaming': ['game', 'gaming', 'unity', 'unreal-engine', 'game-development'],
+        'Data Science': ['data-science', 'analytics', 'big-data', 'data-visualization'],
+        'Cybersecurity': ['security', 'cybersecurity', 'hacking', 'privacy'],
+        'IoT': ['iot', 'arduino', 'raspberry-pi', 'embedded']
 }
 
 # Sort criteria
