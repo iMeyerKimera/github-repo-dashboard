@@ -195,8 +195,6 @@ We welcome contributions! Here's how:
 
 MIT License - see [LICENSE](LICENSE) file
 
-Copyright (c) 2024 iMeyerKimera
-
 ## 🙏 Acknowledgments
 
 - **GitHub API** for providing the data
