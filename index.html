@@ -74,6 +74,24 @@
                 <span class="stat-label">Categories</span>
             </div>
         </div>
+
+        <!--
+        <div class="newsletter-bar" id="newsletter-bar" style="display: none;">
+            <div class="newsletter-content">
+                <p><i class="fas fa-paper-plane"></i> Get weekly trending repos in your inbox</p>
+                <form class="newsletter-form" id="newsletter-form">
+                    <input type="email"
+                           placeholder="your@email.com"
+                           required
+                           aria-label="Email for newsletter">
+                    <button type="submit">Subscribe</button>
+                </form>
+                <button class="newsletter-close" aria-label="Close newsletter">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        -->
     </header>
 
     <main id="main-content" class="main-content">
@@ -202,13 +220,97 @@
                     </button>
                 </div>
             </div>
+            <div class="monetization-section">
+                <p class="support-text">Support this project:</p>
+                <div class="support-options">
+                    <a href="https://github.com/sponsors/imeyerkimera"
+                       target="_blank"
+                       class="support-btn sponsor">
+                        <i class="fas fa-heart"></i> Sponsor
+                    </a>
+                    <a href="https://buymeacoffee.com/mkbuilds"
+                       target="_blank"
+                       class="support-btn coffee">
+                        <i class="fas fa-coffee"></i> Buy Me Coffee
+                    </a>
+                    <a href="https://patreon.com/MeyerKimera"
+                       target="_blank"
+                       class="support-btn patreon">
+                        <i class="fab fa-patreon"></i> Patreon
+                    </a>
+                </div>
+            </div>
         </div>
     </footer>
 
-    <!-- JavaScript -->
-    <script type="module" src="config.js"></script>
-    <script type="module" src="scripts/github-api.js"></script>
-    <script type="module" src="scripts/filters.js"></script>
     <script type="module" src="scripts/main.js"></script>
+
+    <!-- Share Modal -->
+    <div class="share-modal" id="share-modal" style="display: none;">
+        <div class="share-modal-overlay" id="share-modal-overlay"></div>
+        <div class="share-modal-content">
+            <div class="share-modal-header">
+                <h3 class="share-modal-title">Share Repository</h3>
+                <button class="share-modal-close" aria-label="Close share modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="share-modal-body">
+                <div class="share-options">
+                    <button class="share-option twitter" data-platform="twitter">
+                        <div class="share-icon">
+                            <i class="fab fa-twitter"></i>
+                        </div>
+                        <span>Twitter</span>
+                    </button>
+
+                    <button class="share-option linkedin" data-platform="linkedin">
+                        <div class="share-icon">
+                            <i class="fab fa-linkedin"></i>
+                        </div>
+                        <span>LinkedIn</span>
+                    </button>
+
+                    <button class="share-option copy" data-platform="copy">
+                        <div class="share-icon">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <span>Copy Link</span>
+                    </button>
+                </div>
+
+                <div class="share-preview">
+                    <div class="share-text-preview" id="share-text-preview">
+                        Check out this trending repository!
+                    </div>
+                    <div class="share-url-preview" id="share-url-preview">
+                        https://github.com/example/repo
+                    </div>
+                </div>
+
+                <div class="share-custom">
+                    <textarea
+                        class="share-custom-text"
+                        id="share-custom-text"
+                        placeholder="Add your own message..."
+                        rows="3"
+                    ></textarea>
+                    <button class="share-custom-btn" id="share-custom-copy">
+                        <i class="fas fa-copy"></i> Copy with message
+                    </button>
+                </div>
+            </div>
+
+            <div class="share-modal-footer">
+                <small class="share-note">
+                    <i class="fas fa-info-circle"></i>
+                    Share helps others discover great repositories
+                </small>
+            </div>
+        </div>
+    </div>
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toast-container"></div>
 </body>
 </html>

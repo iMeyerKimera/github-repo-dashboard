@@ -13,9 +13,116 @@ class GitHubAPI {
         }
 
         this.cache = new Map();
+        this.localData = null;
+        this.localDataAge = null;
     }
 
     async searchRepositories(category, sort = 'stars', page = 1) {
+        // Try to load from local data.json first
+        const localData = await this.getLocalData();
+
+        if (localData && this.isLocalDataFresh()) {
+            return this.getRepositoriesFromLocal(category, sort, page);
+        }
+
+        // Fallback to GitHub API
+        return this.fetchFromGitHubAPI(category, sort, page);
+    }
+
+    async getLocalData() {
+        if (this.localData) return this.localData;
+
+        try {
+            const response = await fetch('data.json');
+            if (!response.ok) throw new Error('Failed to load data.json');
+
+            const data = await response.json();
+            this.localData = data;
+
+            // Store when we loaded it
+            this.localDataAge = Date.now();
+
+            return data;
+        } catch (error) {
+            console.warn('Failed to load local data:', error.message);
+            return null;
+        }
+    }
+
+    isLocalDataFresh() {
+        if (!this.localData || !this.localDataAge) return false;
+
+        // Check if local data has a timestamp
+        if (this.localData._last_updated) {
+            const lastUpdated = new Date(this.localData._last_updated);
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            return lastUpdated > oneWeekAgo;
+        }
+
+        // If no timestamp in data, use our load time (1 hour max)
+        const oneHourAgo = Date.now() - (60 * 60 * 1000);
+        return this.localDataAge > oneHourAgo;
+    }
+
+    getRepositoriesFromLocal(category, sort, page) {
+        if (!this.localData) return [];
+
+        let repos = [];
+
+        // Your data structure: data[category][sort] = array of repos
+        if (this.localData[category] && this.localData[category][sort]) {
+            repos = this.localData[category][sort];
+        } else if (this.localData._metadata) {
+            // New structure with metadata
+            if (this.localData[category] && this.localData[category][sort]) {
+                repos = this.localData[category][sort];
+            }
+        }
+
+        // Convert to the format expected by the dashboard
+        repos = repos.map(repo => ({
+            ...repo,
+            category: category,
+            calculated_stars_per_day: 0, // Not available in local data
+            // Ensure all required fields exist
+            stargazers_count: repo.stargazers_count || 0,
+            forks_count: repo.forks_count || 0,
+            open_issues_count: repo.open_issues_count || 0,
+            watchers_count: repo.watchers_count || 0,
+            description: repo.description || 'No description provided.',
+            language: repo.language || null
+        }));
+
+        // Apply sorting (local data might already be sorted, but sort again to be sure)
+        repos = this.sortRepositories(repos, sort);
+
+        // Apply pagination
+        const startIndex = (page - 1) * CONFIG.PER_PAGE;
+        const endIndex = startIndex + CONFIG.PER_PAGE;
+
+        return repos.slice(startIndex, endIndex);
+    }
+
+    sortRepositories(repos, sort) {
+        switch(sort) {
+            case 'stars':
+                return repos.sort((a, b) => b.stargazers_count - a.stargazers_count);
+            case 'forks':
+                return repos.sort((a, b) => b.forks_count - a.forks_count);
+            case 'updated':
+                return repos.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+            case 'trending':
+                // For trending, use stars as fallback since we don't have trending data
+                return repos.sort((a, b) => b.stargazers_count - a.stargazers_count);
+            case 'newest':
+                return repos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            default:
+                return repos.sort((a, b) => b.stargazers_count - a.stargazers_count);
+        }
+    }
+
+    async fetchFromGitHubAPI(category, sort = 'stars', page = 1) {
         const cacheKey = `${category}-${sort}-${page}`;
 
         // Check cache
@@ -102,32 +209,10 @@ class GitHubAPI {
         }
     }
 
-    async getRepositoryStats(fullName) {
-        const url = `${this.baseURL}/repos/${fullName}`;
-        try {
-            const response = await fetch(url, { headers: this.headers });
-            if (!response.ok) throw new Error('Failed to fetch repo stats');
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching repo stats:', error);
-            return null;
-        }
-    }
-
-    async getUserRepos(username) {
-        const url = `${this.baseURL}/users/${username}/repos?per_page=100&sort=updated`;
-        try {
-            const response = await fetch(url, { headers: this.headers });
-            if (!response.ok) throw new Error('Failed to fetch user repos');
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching user repos:', error);
-            return [];
-        }
-    }
-
     clearCache() {
         this.cache.clear();
+        this.localData = null;
+        this.localDataAge = null;
     }
 }
 

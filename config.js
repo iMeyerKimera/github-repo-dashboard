@@ -17,7 +17,8 @@ const CONFIG = {
         'Gaming': ['game', 'gaming', 'unity', 'unreal-engine', 'game-development'],
         'Data Science': ['data-science', 'analytics', 'big-data', 'data-visualization'],
         'Cybersecurity': ['security', 'cybersecurity', 'hacking', 'privacy'],
-        'IoT': ['iot', 'arduino', 'raspberry-pi', 'embedded']
+        'IoT': ['iot', 'arduino', 'raspberry-pi', 'embedded'],
+        'Energy': ['energy', 'renewable-energy', 'solar', 'wind', 'battery', 'power-systems', 'smart-grid', 'energy-storage', 'electric-vehicles']
     },
 
     // Colors for categories
@@ -31,7 +32,8 @@ const CONFIG = {
         'Gaming': '#ec4899',
         'Data Science': '#6366f1',
         'Cybersecurity': '#84cc16',
-        'IoT': '#f97316'
+        'IoT': '#f97316',
+        'Energy': '#f59e0b'
     },
 
     // Language colors (GitHub colors)
@@ -53,7 +55,11 @@ const CONFIG = {
 
     // Cache settings
     CACHE_DURATION: 30 * 60 * 1000, // 30 minutes
-    USE_CACHE: true
+    USE_CACHE: true,
+
+    // Local data settings
+    USE_LOCAL_DATA_FIRST: true,
+    LOCAL_DATA_MAX_AGE_DAYS: 7
 };
 
 // Helper function to get category color
