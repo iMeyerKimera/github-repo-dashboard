@@ -22,7 +22,8 @@ categories = {
     "Gaming": ["game", "gaming", "unity", "unreal-engine", "game-development"],
     "Data Science": ["data-science", "analytics", "big-data", "data-visualization"],
     "Cybersecurity": ["security", "cybersecurity", "hacking", "privacy"],
-    "IoT": ["iot", "arduino", "raspberry-pi", "embedded"]
+    "IoT": ["iot", "arduino", "raspberry-pi", "embedded"],
+    "Energy": ["energy", "renewable-energy", "solar", "wind", "battery", "power-systems", "smart-grid", "energy-storage", "electric-vehicles"]
 }
 
 # Sort criteria
@@ -31,6 +32,7 @@ sorts = [
     ("forks", "desc"),
     ("updated", "desc")
 ]
+
 
 def search_repositories(query, sort, order, per_page=30):
     """Search repositories with given query, sort, and order."""
@@ -48,25 +50,27 @@ def search_repositories(query, sort, order, per_page=30):
         print(f"Error searching repositories: {e}")
         return []
 
+
 def build_query(topics):
     """Build a search query for a list of topics."""
     # Search for repos that have at least one of the topics
     topic_query = ' '.join([f'topic:{topic}' for topic in topics])
     return f'{topic_query} stars:>10'  # Only repos with more than 10 stars
 
+
 def main():
     data = {}
     total_repos = 0
-    
+
     for category, topics in categories.items():
         data[category] = {}
         query = build_query(topics)
-        
+
         for sort, order in sorts:
             try:
                 print(f"Fetching {category} - {sort}...")
                 repos = search_repositories(query, sort, order, per_page=50)
-                
+
                 # Simplify the repo data to what we need
                 simplified_repos = []
                 for repo in repos:
@@ -87,13 +91,13 @@ def main():
                         'category': category,
                         'calculated_stars_per_day': 0
                     })
-                
+
                 data[category][sort] = simplified_repos
                 total_repos += len(simplified_repos)
-                
+
                 # Be gentle to the API - longer delay for free API
                 time.sleep(3)
-                
+
             except Exception as e:
                 print(f"Error fetching {category} with sort {sort}: {e}")
                 data[category][sort] = []
@@ -102,15 +106,16 @@ def main():
     data['_last_updated'] = datetime.utcnow().isoformat() + 'Z'
     data['_total_repositories'] = total_repos
     data['_categories'] = list(categories.keys())
-    
+
     # Write to data.json
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
-    
+
     print(f"\n✅ Successfully updated data.json")
     print(f"📊 Total repositories: {total_repos}")
     print(f"📅 Last updated: {data['_last_updated']}")
     print(f"🏷️ Categories: {', '.join(categories.keys())}")
+
 
 if __name__ == '__main__':
     main()
