@@ -108,7 +108,7 @@ def main():
     data['_categories'] = list(categories.keys())
 
     # Write to data.json
-    with open('data.json', 'w') as f:
+    with open('data/data.json', 'w') as f:
         json.dump(data, f, indent=2)
 
     print(f"\n✅ Successfully updated data.json")

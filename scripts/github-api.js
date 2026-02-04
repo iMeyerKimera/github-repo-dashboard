@@ -33,7 +33,7 @@ class GitHubAPI {
         if (this.localData) return this.localData;
 
         try {
-            const response = await fetch('data.json');
+            const response = await fetch('data/data.json');
             if (!response.ok) throw new Error('Failed to load data.json');
 
             const data = await response.json();
