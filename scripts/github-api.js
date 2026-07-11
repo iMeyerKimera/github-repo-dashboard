@@ -134,7 +134,7 @@ class GitHubAPI {
         }
 
         const topics = CONFIG.CATEGORIES[category] || [category.toLowerCase()];
-        const query = topics.map(topic => `topic:${topic}`).join(' ');
+        const query = `${topics.map(topic => `topic:${topic}`).join(' OR ')} stars:>10`;
 
         const url = new URL(`${this.baseURL}/search/repositories`);
         url.searchParams.append('q', query);

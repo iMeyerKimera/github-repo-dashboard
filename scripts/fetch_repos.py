@@ -3,10 +3,16 @@ import json
 import os
 import time
 from datetime import datetime
+from operator import itemgetter
 
 # GitHub token from environment
 token = os.environ.get('DASHBOARD_TOKEN')
-headers = {'Authorization': f'token {token}'} if token else {}
+headers = {
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+}
+if token:
+    headers['Authorization'] = f'token {token}'
 
 # Base URL for GitHub API
 BASE_URL = 'https://api.github.com/search/repositories'
@@ -33,8 +39,13 @@ sorts = [
     ("updated", "desc")
 ]
 
+MIN_STARS = 10
+PER_PAGE = 100
+MAX_REPOS_PER_CATEGORY_SORT = 150
+REQUEST_DELAY_SECONDS = 3
 
-def search_repositories(query, sort, order, per_page=30):
+
+def search_repositories(query, sort, order, per_page=PER_PAGE):
     """Search repositories with given query, sort, and order."""
     params = {
         'q': query,
@@ -51,11 +62,64 @@ def search_repositories(query, sort, order, per_page=30):
         return []
 
 
-def build_query(topics):
-    """Build a search query for a list of topics."""
-    # Search for repos that have at least one of the topics
-    topic_query = ' '.join([f'topic:{topic}' for topic in topics])
-    return f'{topic_query} stars:>10'  # Only repos with more than 10 stars
+def build_topic_query(topic):
+    """Build a broad category query for one GitHub topic."""
+    return f'topic:{topic} stars:>{MIN_STARS}'
+
+
+def simplify_repo(repo, category, matched_topics):
+    """Keep only the fields the dashboard renders and a small provenance hint."""
+    return {
+        'id': repo['id'],
+        'name': repo['name'],
+        'full_name': repo['full_name'],
+        'html_url': repo['html_url'],
+        'description': repo['description'],
+        'language': repo['language'],
+        'stargazers_count': repo['stargazers_count'],
+        'forks_count': repo['forks_count'],
+        'watchers_count': repo['watchers_count'],
+        'open_issues_count': repo['open_issues_count'],
+        'created_at': repo['created_at'],
+        'updated_at': repo['updated_at'],
+        'topics': repo.get('topics', []),
+        'category': category,
+        'matched_topics': set(matched_topics),
+        'calculated_stars_per_day': 0
+    }
+
+
+def merge_repositories(existing_repos, new_repos, category, matched_topic):
+    """Merge topic searches so broad categories are a union, not an intersection."""
+    for repo in new_repos:
+        repo_id = repo['id']
+        if repo_id in existing_repos:
+            existing_repos[repo_id]['matched_topics'].add(matched_topic)
+            continue
+
+        existing_repos[repo_id] = simplify_repo(
+            repo,
+            category,
+            matched_topics={matched_topic}
+        )
+
+
+def sort_repositories(repos, sort):
+    """Sort merged results the same way the dashboard expects."""
+    if sort == 'stars':
+        return sorted(repos, key=itemgetter('stargazers_count'), reverse=True)
+
+    if sort == 'forks':
+        return sorted(repos, key=itemgetter('forks_count'), reverse=True)
+
+    if sort == 'updated':
+        return sorted(
+            repos,
+            key=lambda repo: repo.get('updated_at') or '',
+            reverse=True
+        )
+
+    return sorted(repos, key=itemgetter('stargazers_count'), reverse=True)
 
 
 def main():
@@ -64,39 +128,34 @@ def main():
 
     for category, topics in categories.items():
         data[category] = {}
-        query = build_query(topics)
 
         for sort, order in sorts:
             try:
                 print(f"Fetching {category} - {sort}...")
-                repos = search_repositories(query, sort, order, per_page=50)
+                merged_repos = {}
 
-                # Simplify the repo data to what we need
-                simplified_repos = []
-                for repo in repos:
-                    simplified_repos.append({
-                        'id': repo['id'],
-                        'name': repo['name'],
-                        'full_name': repo['full_name'],
-                        'html_url': repo['html_url'],
-                        'description': repo['description'],
-                        'language': repo['language'],
-                        'stargazers_count': repo['stargazers_count'],
-                        'forks_count': repo['forks_count'],
-                        'watchers_count': repo['watchers_count'],
-                        'open_issues_count': repo['open_issues_count'],
-                        'created_at': repo['created_at'],
-                        'updated_at': repo['updated_at'],
-                        'topics': repo.get('topics', []),
-                        'category': category,
-                        'calculated_stars_per_day': 0
-                    })
+                for topic in topics:
+                    query = build_topic_query(topic)
+                    print(f"  topic:{topic}")
+                    repos = search_repositories(query, sort, order)
+                    merge_repositories(merged_repos, repos, category, topic)
 
-                data[category][sort] = simplified_repos
-                total_repos += len(simplified_repos)
+                    # Stay under GitHub's authenticated search rate limit.
+                    time.sleep(REQUEST_DELAY_SECONDS)
 
-                # Be gentle to the API - longer delay for free API
-                time.sleep(3)
+                sorted_repos = sort_repositories(
+                    list(merged_repos.values()),
+                    sort
+                )
+                category_repos = sorted_repos[:MAX_REPOS_PER_CATEGORY_SORT]
+
+                # Convert matched topic sets to JSON-friendly lists after merging.
+                for repo in category_repos:
+                    repo['matched_topics'] = sorted(repo['matched_topics'])
+
+                data[category][sort] = category_repos
+                total_repos += len(category_repos)
+                print(f"  saved {len(category_repos)} repos")
 
             except Exception as e:
                 print(f"Error fetching {category} with sort {sort}: {e}")
@@ -106,6 +165,12 @@ def main():
     data['_last_updated'] = datetime.utcnow().isoformat() + 'Z'
     data['_total_repositories'] = total_repos
     data['_categories'] = list(categories.keys())
+    data['_collection'] = {
+        'min_stars': MIN_STARS,
+        'per_page': PER_PAGE,
+        'max_repos_per_category_sort': MAX_REPOS_PER_CATEGORY_SORT,
+        'strategy': 'topic_union'
+    }
 
     # Write to data.json
     with open('data/data.json', 'w') as f:
