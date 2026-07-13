@@ -29,6 +29,18 @@ class GitHubAPI {
         return this.fetchFromGitHubAPI(category, sort, page);
     }
 
+    async getRepositoryStats(category, sort = 'stars') {
+        const localData = await this.getLocalData();
+
+        if (localData && this.isLocalDataFresh()) {
+            return this.calculateStats(
+                this.getAllRepositoriesFromLocal(category, sort)
+            );
+        }
+
+        return null;
+    }
+
     async getLocalData() {
         if (this.localData) return this.localData;
 
@@ -66,6 +78,16 @@ class GitHubAPI {
     }
 
     getRepositoriesFromLocal(category, sort, page) {
+        const repos = this.getAllRepositoriesFromLocal(category, sort);
+
+        // Apply pagination
+        const startIndex = (page - 1) * CONFIG.PER_PAGE;
+        const endIndex = startIndex + CONFIG.PER_PAGE;
+
+        return repos.slice(startIndex, endIndex);
+    }
+
+    getAllRepositoriesFromLocal(category, sort) {
         if (!this.localData) return [];
 
         let repos = [];
@@ -84,7 +106,7 @@ class GitHubAPI {
         repos = repos.map(repo => ({
             ...repo,
             category: category,
-            calculated_stars_per_day: 0, // Not available in local data
+            calculated_stars_per_day: repo.calculated_stars_per_day || 0,
             // Ensure all required fields exist
             stargazers_count: repo.stargazers_count || 0,
             forks_count: repo.forks_count || 0,
@@ -95,13 +117,27 @@ class GitHubAPI {
         }));
 
         // Apply sorting (local data might already be sorted, but sort again to be sure)
-        repos = this.sortRepositories(repos, sort);
+        return this.sortRepositories(repos, sort);
+    }
 
-        // Apply pagination
-        const startIndex = (page - 1) * CONFIG.PER_PAGE;
-        const endIndex = startIndex + CONFIG.PER_PAGE;
+    calculateStats(repos) {
+        const uniqueRepos = new Map();
 
-        return repos.slice(startIndex, endIndex);
+        repos.forEach(repo => {
+            uniqueRepos.set(repo.id || repo.full_name, repo);
+        });
+
+        const uniqueRepoList = Array.from(uniqueRepos.values());
+
+        return {
+            totalRepos: uniqueRepoList.length,
+            totalStars: uniqueRepoList.reduce((sum, repo) =>
+                sum + (repo.stargazers_count || 0), 0
+            ),
+            totalForks: uniqueRepoList.reduce((sum, repo) =>
+                sum + (repo.forks_count || 0), 0
+            )
+        };
     }
 
     sortRepositories(repos, sort) {

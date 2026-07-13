@@ -9,6 +9,8 @@ class GitHubDashboard {
         this.currentPage = 1;
         this.isLoading = false;
         this.hasMore = true;
+        this.currentRepos = [];
+        this.currentStats = null;
         
         this.initialize();
     }
@@ -323,14 +325,24 @@ class GitHubDashboard {
         this.hideEmptyState();
         
         try {
-            const repos = await this.api.searchRepositories(
-                this.currentCategory,
-                this.currentSort,
-                this.currentPage
-            );
+            const [repos, stats] = await Promise.all([
+                this.api.searchRepositories(
+                    this.currentCategory,
+                    this.currentSort,
+                    this.currentPage
+                ),
+                this.api.getRepositoryStats(
+                    this.currentCategory,
+                    this.currentSort
+                )
+            ]);
 
-            // Store current repos for stats calculation
-            this.currentRepos = repos;
+            if (this.currentPage === 1) {
+                this.currentRepos = repos;
+            } else {
+                this.currentRepos = [...this.currentRepos, ...repos];
+            }
+            this.currentStats = stats;
             
             this.hideLoading();
             
@@ -526,22 +538,16 @@ class GitHubDashboard {
     updateStats() {
         const cards = document.querySelectorAll('.repo-card');
 
-        // If we have currentRepos data, use it for accurate stats
-        if (this.currentRepos && this.currentRepos.length > 0) {
-            const totalStars = this.currentRepos.reduce((sum, repo) =>
-                sum + (repo.stargazers_count || 0), 0
-            );
-            const totalForks = this.currentRepos.reduce((sum, repo) =>
-                sum + (repo.forks_count || 0), 0
-            );
-            const totalWatchers = this.currentRepos.reduce((sum, repo) =>
-                sum + (repo.watchers_count || 0), 0
-            );
+        if (this.currentStats) {
+            document.getElementById('total-repos').textContent = this.currentStats.totalRepos;
+            document.getElementById('total-stars').textContent = this.formatNumber(this.currentStats.totalStars);
+            document.getElementById('total-forks').textContent = this.formatNumber(this.currentStats.totalForks);
+        } else if (this.currentRepos && this.currentRepos.length > 0) {
+            const loadedStats = this.api.calculateStats(this.currentRepos);
 
-            document.getElementById('total-repos').textContent = this.currentRepos.length;
-            document.getElementById('total-stars').textContent = this.formatNumber(totalStars);
-            document.getElementById('total-forks').textContent = this.formatNumber(totalForks);
-            // You could add watchers if you want
+            document.getElementById('total-repos').textContent = loadedStats.totalRepos;
+            document.getElementById('total-stars').textContent = this.formatNumber(loadedStats.totalStars);
+            document.getElementById('total-forks').textContent = this.formatNumber(loadedStats.totalForks);
         } else {
             // Fallback to counting visible cards
             const visibleCards = Array.from(cards).filter(card =>
