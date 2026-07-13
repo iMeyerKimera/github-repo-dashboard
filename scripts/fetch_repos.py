@@ -124,7 +124,8 @@ def sort_repositories(repos, sort):
 
 def main():
     data = {}
-    total_repos = 0
+    total_entries = 0
+    unique_repo_ids = set()
 
     for category, topics in categories.items():
         data[category] = {}
@@ -152,9 +153,10 @@ def main():
                 # Convert matched topic sets to JSON-friendly lists after merging.
                 for repo in category_repos:
                     repo['matched_topics'] = sorted(repo['matched_topics'])
+                    unique_repo_ids.add(repo['id'])
 
                 data[category][sort] = category_repos
-                total_repos += len(category_repos)
+                total_entries += len(category_repos)
                 print(f"  saved {len(category_repos)} repos")
 
             except Exception as e:
@@ -163,7 +165,8 @@ def main():
 
     # Add metadata
     data['_last_updated'] = datetime.utcnow().isoformat() + 'Z'
-    data['_total_repositories'] = total_repos
+    data['_total_repositories'] = len(unique_repo_ids)
+    data['_total_repository_entries'] = total_entries
     data['_categories'] = list(categories.keys())
     data['_collection'] = {
         'min_stars': MIN_STARS,
@@ -177,7 +180,8 @@ def main():
         json.dump(data, f, indent=2)
 
     print(f"\n✅ Successfully updated data.json")
-    print(f"📊 Total repositories: {total_repos}")
+    print(f"📊 Unique repositories: {len(unique_repo_ids)}")
+    print(f"📦 Repository entries: {total_entries}")
     print(f"📅 Last updated: {data['_last_updated']}")
     print(f"🏷️ Categories: {', '.join(categories.keys())}")
 
